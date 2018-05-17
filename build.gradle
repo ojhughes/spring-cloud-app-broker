@@ -23,6 +23,7 @@ configure(allprojects) {
 	ext.junitJupiterVersion = "5.2.0"
     ext.assertjVersion = "3.10.0"
     ext.mockitoVersion = "2.18.3"
+    ext.joolVersion = "0.9.13"
 
 	apply plugin: "java"
 	apply plugin: "maven"
@@ -160,7 +161,9 @@ project("spring-cloud-app-broker-core") {
 	dependencies {
 		compile("org.springframework:spring-core")
 		compile("org.springframework:spring-context")
+        compile("org.springframework.security:spring-security-core:${springVersion}")
 		compile("org.springframework.cloud:spring-cloud-open-service-broker-core:${springCloudOpenServiceBrokerVersion}")
+        compile("org.jooq:jool-java-8:${joolVersion}")
 		testCompile("org.junit.jupiter:junit-jupiter-api:${junitJupiterVersion}")
 		testCompile("org.springframework:spring-test") {
 			exclude group:"commons-logging", module:"commons-logging"
