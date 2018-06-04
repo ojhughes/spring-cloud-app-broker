@@ -12,11 +12,11 @@ import org.springframework.cloud.appbroker.pipeline.output.TransformedParameters
 import org.springframework.cloud.servicebroker.model.ServiceBrokerRequest;
 
 public interface ConfigurationMapperStep<
-	T extends TransformedParameters,
-	S extends DeployedServices,
-	A extends DeployedApp,
-	G extends GeneratedCredentials,
-	P extends PersistResponse>
+	T extends TransformedParameters<?>,
+	S extends DeployedServices<?>,
+	A extends DeployedApp<?>,
+	G extends GeneratedCredentials<?>,
+	P extends PersistResponse<?>>
 
 	extends Function<
 		Tuple6<ServiceBrokerRequest, T, S, A, G, P>,

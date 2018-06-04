@@ -1,12 +1,9 @@
 package org.springframework.cloud.appbroker.pipeline.output;
 
-import java.util.HashMap;
-import java.util.Map;
-
-public class CloudFoundryDeployedApp implements DeployedApp {
+public class CloudFoundryDeployedApp implements DeployedApp<String> {
 
 	@Override
-	public Map<String, String> getState() {
-		return new HashMap<>();
+	public String getState() {
+		return "";
 	}
 }

@@ -17,31 +17,29 @@ import org.springframework.cloud.appbroker.pipeline.step.PersistenceStep;
 import org.springframework.cloud.appbroker.pipeline.step.ServiceBrokerResponseBuilder;
 import org.springframework.cloud.servicebroker.model.instance.CreateServiceInstanceRequest;
 import org.springframework.cloud.servicebroker.model.instance.CreateServiceInstanceResponse;
-import org.springframework.stereotype.Component;
 
-@Component
 public class CreateServiceInstanceDefaultAction implements CreateServiceInstanceAction<CreateServiceInstanceRequest, CreateServiceInstanceResponse> {
 
 	private ParameterValidatorStep parameterValidatorStep;
-	private AppDeploymentStep<TransformedParameters, DeployedServices, DeployedApp> appDeploymentStep;
-	private BackingServiceInstanceCreateStep<TransformedParameters, DeployedServices> backingServiceInstanceCreateStep;
-	private ConfigurationMapperStep<TransformedParameters, DeployedServices, DeployedApp, GeneratedCredentials, PersistResponse> configurationMapperStep;
-	private CredentialGeneratorStep<TransformedParameters, DeployedServices, DeployedApp, GeneratedCredentials> credentialGeneratorStep;
-	private CredentialsMapperStep<TransformedParameters, DeployedServices, DeployedApp, GeneratedCredentials, PersistResponse> credentialsMapperStep;
-	private ParameterTransformerStep<TransformedParameters> parameterTransformerStep;
-	private PersistenceStep<TransformedParameters, DeployedServices, DeployedApp, GeneratedCredentials, PersistResponse> persistServiceInstanceStateStep;
-	private ServiceBrokerResponseBuilder<TransformedParameters, DeployedServices, DeployedApp, GeneratedCredentials, PersistResponse, CreateServiceInstanceResponse> serviceBrokerResponseBuilder;
+	private AppDeploymentStep<TransformedParameters<?>, DeployedServices<?>, DeployedApp<?>> appDeploymentStep;
+	private BackingServiceInstanceCreateStep<TransformedParameters<?>, DeployedServices<?>> backingServiceInstanceCreateStep;
+	private ConfigurationMapperStep<TransformedParameters<?>, DeployedServices<?>, DeployedApp<?>, GeneratedCredentials<?>, PersistResponse<?>> configurationMapperStep;
+	private CredentialGeneratorStep<TransformedParameters<?>, DeployedServices<?>, DeployedApp<?>, GeneratedCredentials<?>> credentialGeneratorStep;
+	private CredentialsMapperStep<TransformedParameters<?>, DeployedServices<?>, DeployedApp<?>, GeneratedCredentials<?>, PersistResponse<?>> credentialsMapperStep;
+	private ParameterTransformerStep<TransformedParameters<?>> parameterTransformerStep;
+	private PersistenceStep<TransformedParameters<?>, DeployedServices<?>, DeployedApp<?>, GeneratedCredentials<?>, PersistResponse<?>> persistServiceInstanceStateStep;
+	private ServiceBrokerResponseBuilder<TransformedParameters<?>, DeployedServices<?>, DeployedApp<?>, GeneratedCredentials<?>, PersistResponse<?>, CreateServiceInstanceResponse> serviceBrokerResponseBuilder;
 
 	@Autowired
 	public CreateServiceInstanceDefaultAction(ParameterValidatorStep parameterValidatorStep,
-											  ParameterTransformerStep<TransformedParameters> parameterTransformerStep,
-											  AppDeploymentStep<TransformedParameters, DeployedServices, DeployedApp> appDeploymentStep,
-											  BackingServiceInstanceCreateStep<TransformedParameters, DeployedServices> backingServiceInstanceCreateStep,
-											  CredentialGeneratorStep<TransformedParameters, DeployedServices, DeployedApp, GeneratedCredentials> credentialGeneratorStep,
-											  PersistenceStep<TransformedParameters, DeployedServices, DeployedApp, GeneratedCredentials, PersistResponse> persistServiceInstanceStateStep,
-											  CredentialsMapperStep<TransformedParameters, DeployedServices, DeployedApp, GeneratedCredentials, PersistResponse> credentialsMapperStep,
-											  ConfigurationMapperStep<TransformedParameters, DeployedServices, DeployedApp, GeneratedCredentials, PersistResponse> configurationMapperStep,
-											  ServiceBrokerResponseBuilder<TransformedParameters, DeployedServices, DeployedApp, GeneratedCredentials, PersistResponse, CreateServiceInstanceResponse> serviceBrokerResponseBuilder) {
+											  ParameterTransformerStep<TransformedParameters<?>> parameterTransformerStep,
+											  AppDeploymentStep<TransformedParameters<?>, DeployedServices<?>, DeployedApp<?>> appDeploymentStep,
+											  BackingServiceInstanceCreateStep<TransformedParameters<?>, DeployedServices<?>> backingServiceInstanceCreateStep,
+											  CredentialGeneratorStep<TransformedParameters<?>, DeployedServices<?>, DeployedApp<?>, GeneratedCredentials<?>> credentialGeneratorStep,
+											  PersistenceStep<TransformedParameters<?>, DeployedServices<?>, DeployedApp<?>, GeneratedCredentials<?>, PersistResponse<?>> persistServiceInstanceStateStep,
+											  CredentialsMapperStep<TransformedParameters<?>, DeployedServices<?>, DeployedApp<?>, GeneratedCredentials<?>, PersistResponse<?>> credentialsMapperStep,
+											  ConfigurationMapperStep<TransformedParameters<?>, DeployedServices<?>, DeployedApp<?>, GeneratedCredentials<?>, PersistResponse<?>> configurationMapperStep,
+											  ServiceBrokerResponseBuilder<TransformedParameters<?>, DeployedServices<?>, DeployedApp<?>, GeneratedCredentials<?>, PersistResponse<?>, CreateServiceInstanceResponse> serviceBrokerResponseBuilder) {
 
 		this.parameterValidatorStep = parameterValidatorStep;
 		this.parameterTransformerStep = parameterTransformerStep;

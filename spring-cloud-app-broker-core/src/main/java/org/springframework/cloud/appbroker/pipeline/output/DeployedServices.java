@@ -1,6 +1,9 @@
 package org.springframework.cloud.appbroker.pipeline.output;
 
-public interface DeployedServices<T> {
+import java.io.Serializable;
+import java.util.Map;
 
-	T serviceStates();
+public interface DeployedServices<T extends Serializable> {
+
+	Map<String, T> serviceStates();
 }

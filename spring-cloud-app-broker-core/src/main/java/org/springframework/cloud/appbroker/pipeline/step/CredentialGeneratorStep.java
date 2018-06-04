@@ -12,10 +12,10 @@ import org.springframework.cloud.appbroker.pipeline.output.TransformedParameters
 import org.springframework.cloud.servicebroker.model.ServiceBrokerRequest;
 
 public interface CredentialGeneratorStep<
-	T extends TransformedParameters,
-	S extends DeployedServices,
-	A extends DeployedApp,
-	G extends GeneratedCredentials>
+	T extends TransformedParameters<?>,
+	S extends DeployedServices<?>,
+	A extends DeployedApp<?>,
+	G extends GeneratedCredentials<?>>
 
 	extends Function<
 		Tuple4<ServiceBrokerRequest, T, S, A>,

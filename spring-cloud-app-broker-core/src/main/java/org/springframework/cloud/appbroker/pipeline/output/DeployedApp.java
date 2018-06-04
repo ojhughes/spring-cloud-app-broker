@@ -1,5 +1,7 @@
 package org.springframework.cloud.appbroker.pipeline.output;
 
-public interface DeployedApp<T> {
+import java.io.Serializable;
+
+public interface DeployedApp<T extends Serializable> {
 	T getState();
 }

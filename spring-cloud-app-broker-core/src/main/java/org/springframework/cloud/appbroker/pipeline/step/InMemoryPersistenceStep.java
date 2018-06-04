@@ -1,5 +1,6 @@
 package org.springframework.cloud.appbroker.pipeline.step;
 
+import java.io.Serializable;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.jooq.lambda.tuple.Tuple;
@@ -17,13 +18,13 @@ import org.springframework.cloud.appbroker.pipeline.output.TransformedParameters
 import org.springframework.cloud.servicebroker.model.ServiceBrokerRequest;
 import org.springframework.cloud.servicebroker.model.instance.CreateServiceInstanceRequest;
 
-public class InMemoryPersistenceStep implements
+public class InMemoryPersistenceStep<T, S extends Serializable, A extends Serializable, G extends Serializable, P extends Comparable<P>> implements
 	PersistenceStep<
-		TransformedParameters,
-		DeployedServices,
-		DeployedApp,
-		GeneratedCredentials,
-		PersistResponse> {
+		TransformedParameters<T>,
+		DeployedServices<S>,
+		DeployedApp<A>,
+		GeneratedCredentials<G>,
+		PersistResponse<P>> {
 
 	private ConcurrentHashMap<String, ServiceInstance> inMemoryMap;
 
@@ -33,8 +34,8 @@ public class InMemoryPersistenceStep implements
 	}
 
 	@Override
-	public Tuple6<ServiceBrokerRequest, TransformedParameters, DeployedServices, DeployedApp, GeneratedCredentials, PersistResponse>
-	apply(Tuple5<ServiceBrokerRequest, TransformedParameters, DeployedServices, DeployedApp, GeneratedCredentials> previousStep) {
+	public Tuple6<ServiceBrokerRequest, TransformedParameters<T>, DeployedServices<S>, DeployedApp<A>, GeneratedCredentials<G>, PersistResponse<P>>
+	apply(Tuple5<ServiceBrokerRequest, TransformedParameters<T>, DeployedServices<S>, DeployedApp<A>, GeneratedCredentials<G>> previousStep) {
 		CreateServiceInstanceRequest serviceInstanceRequest = (CreateServiceInstanceRequest) previousStep.v1;
 		ServiceInstance serviceToPersist = new ServiceInstance(
 			serviceInstanceRequest.getServiceInstanceId(),

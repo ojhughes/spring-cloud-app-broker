@@ -3,7 +3,7 @@ package org.springframework.cloud.appbroker.pipeline.output;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 
-public class GeneratedSpringSecurityBasicCredentials implements GeneratedCredentials {
+public class GeneratedSpringSecurityBasicCredentials implements GeneratedCredentials<UserDetails> {
 
 	@Override
 	public UserDetails getAuthentication() {
