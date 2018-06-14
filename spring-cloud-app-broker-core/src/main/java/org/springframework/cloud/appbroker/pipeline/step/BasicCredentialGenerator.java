@@ -1,7 +1,5 @@
 package org.springframework.cloud.appbroker.pipeline.step;
 
-import java.io.Serializable;
-
 import org.jooq.lambda.tuple.Tuple;
 import org.jooq.lambda.tuple.Tuple4;
 import org.jooq.lambda.tuple.Tuple5;
@@ -13,8 +11,8 @@ import org.springframework.cloud.appbroker.pipeline.output.GeneratedSpringSecuri
 import org.springframework.cloud.appbroker.pipeline.output.TransformedParameters;
 import org.springframework.cloud.servicebroker.model.ServiceBrokerRequest;
 
-public class BasicCredentialGeneratorStep<T, S extends Serializable, A extends Serializable, G extends Serializable> implements
-	CredentialGeneratorStep<
+public class BasicCredentialGenerator implements
+	CredentialGenerator<
 		TransformedParameters<?>,
 		DeployedServices<?>,
 		DeployedApp<?>,

@@ -12,8 +12,8 @@ import org.springframework.cloud.appbroker.pipeline.output.PersistResponse;
 import org.springframework.cloud.appbroker.pipeline.output.TransformedParameters;
 import org.springframework.cloud.servicebroker.model.ServiceBrokerRequest;
 
-public class EnvVarCredentialsMapperStep<T, S extends Serializable, A extends Serializable, G extends Serializable, P extends Serializable> implements
-	CredentialsMapperStep<
+public class SpringJsonConfigMapper<T, S extends Serializable, A extends Serializable, G extends Serializable, P extends Serializable> implements
+	ConfigurationMapper<
 		TransformedParameters<?>,
 		DeployedServices<?>,
 		DeployedApp<?>,

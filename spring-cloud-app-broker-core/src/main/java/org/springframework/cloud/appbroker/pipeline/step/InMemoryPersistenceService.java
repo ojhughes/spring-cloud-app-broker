@@ -18,24 +18,24 @@ import org.springframework.cloud.appbroker.pipeline.output.TransformedParameters
 import org.springframework.cloud.servicebroker.model.ServiceBrokerRequest;
 import org.springframework.cloud.servicebroker.model.instance.CreateServiceInstanceRequest;
 
-public class InMemoryPersistenceStep<T, S extends Serializable, A extends Serializable, G extends Serializable, P extends Comparable<P>> implements
-	PersistenceStep<
-		TransformedParameters<T>,
-		DeployedServices<S>,
-		DeployedApp<A>,
-		GeneratedCredentials<G>,
-		PersistResponse<P>> {
+public class InMemoryPersistenceService<T, S extends Serializable, A extends Serializable, G extends Serializable, P extends String> implements
+	PersistenceService<
+		TransformedParameters<?>,
+		DeployedServices<?>,
+		DeployedApp<?>,
+		GeneratedCredentials<?>,
+		PersistResponse<?>> {
 
 	private ConcurrentHashMap<String, ServiceInstance> inMemoryMap;
 
 	@Autowired
-	public InMemoryPersistenceStep(ConcurrentHashMap<String, ServiceInstance> inMemoryMap) {
+	public InMemoryPersistenceService(ConcurrentHashMap<String, ServiceInstance> inMemoryMap) {
 		this.inMemoryMap = inMemoryMap;
 	}
 
 	@Override
-	public Tuple6<ServiceBrokerRequest, TransformedParameters<T>, DeployedServices<S>, DeployedApp<A>, GeneratedCredentials<G>, PersistResponse<P>>
-	apply(Tuple5<ServiceBrokerRequest, TransformedParameters<T>, DeployedServices<S>, DeployedApp<A>, GeneratedCredentials<G>> previousStep) {
+	public Tuple6<ServiceBrokerRequest, TransformedParameters<?>, DeployedServices<?>, DeployedApp<?>, GeneratedCredentials<?>, PersistResponse<?>>
+	apply(Tuple5<ServiceBrokerRequest, TransformedParameters<?>, DeployedServices<?>, DeployedApp<?>, GeneratedCredentials<?>> previousStep) {
 		CreateServiceInstanceRequest serviceInstanceRequest = (CreateServiceInstanceRequest) previousStep.v1;
 		ServiceInstance serviceToPersist = new ServiceInstance(
 			serviceInstanceRequest.getServiceInstanceId(),

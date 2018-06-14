@@ -12,8 +12,8 @@ import org.springframework.cloud.appbroker.pipeline.output.DeployedServices;
 import org.springframework.cloud.appbroker.pipeline.output.TransformedParameters;
 import org.springframework.cloud.servicebroker.model.ServiceBrokerRequest;
 
-public class CloudFoundryAppDeploymentStep<T, S extends Serializable, A extends Serializable> implements
-	AppDeploymentStep<
+public class CloudFoundryAppDeployer<T, S extends Serializable, A extends Serializable> implements
+	AppDeployer<
 		TransformedParameters<?>,
 		DeployedServices<?>,
 		DeployedApp<?>> {

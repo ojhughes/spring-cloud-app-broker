@@ -9,8 +9,8 @@ import org.springframework.cloud.appbroker.pipeline.output.DeployedServices;
 import org.springframework.cloud.appbroker.pipeline.output.GeneratedCredentials;
 import org.springframework.cloud.appbroker.pipeline.output.PersistResponse;
 import org.springframework.cloud.appbroker.pipeline.output.TransformedParameters;
-import org.springframework.cloud.appbroker.pipeline.step.InMemoryPersistenceStep;
-import org.springframework.cloud.appbroker.pipeline.step.PersistenceStep;
+import org.springframework.cloud.appbroker.pipeline.step.InMemoryPersistenceService;
+import org.springframework.cloud.appbroker.pipeline.step.PersistenceService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -19,9 +19,9 @@ public class WorkflowConfiguration {
 
 	@ConditionalOnMissingBean
 	@Bean
-	public PersistenceStep<TransformedParameters<?>, DeployedServices<?>, DeployedApp<?>, GeneratedCredentials<?>, PersistResponse<?>>
+	public PersistenceService<TransformedParameters<?>, DeployedServices<?>, DeployedApp<?>, GeneratedCredentials<?>, PersistResponse<?>>
 	createServicePersistenceStep(ConcurrentHashMap<String, ServiceInstance> inMemoryStore) {
-		return new InMemoryPersistenceStep(inMemoryStore);
+		return new InMemoryPersistenceService(inMemoryStore);
 	}
 
 	@Bean

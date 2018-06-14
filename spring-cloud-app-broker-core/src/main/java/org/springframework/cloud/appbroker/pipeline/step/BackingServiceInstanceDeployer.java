@@ -9,7 +9,7 @@ import org.springframework.cloud.appbroker.pipeline.output.DeployedServices;
 import org.springframework.cloud.appbroker.pipeline.output.TransformedParameters;
 import org.springframework.cloud.servicebroker.model.ServiceBrokerRequest;
 
-public interface BackingServiceInstanceCreateStep<
+public interface BackingServiceInstanceDeployer<
 	T extends TransformedParameters<?>,
 	S extends DeployedServices<?>>
 

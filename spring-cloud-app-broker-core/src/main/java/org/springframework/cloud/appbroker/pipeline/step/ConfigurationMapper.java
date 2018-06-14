@@ -11,7 +11,7 @@ import org.springframework.cloud.appbroker.pipeline.output.PersistResponse;
 import org.springframework.cloud.appbroker.pipeline.output.TransformedParameters;
 import org.springframework.cloud.servicebroker.model.ServiceBrokerRequest;
 
-public interface ConfigurationMapperStep<
+public interface ConfigurationMapper<
 	T extends TransformedParameters<?>,
 	S extends DeployedServices<?>,
 	A extends DeployedApp<?>,

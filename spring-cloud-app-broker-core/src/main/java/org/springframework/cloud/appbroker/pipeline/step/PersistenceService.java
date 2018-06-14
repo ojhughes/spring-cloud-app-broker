@@ -2,21 +2,25 @@ package org.springframework.cloud.appbroker.pipeline.step;
 
 import java.util.function.Function;
 
-import org.jooq.lambda.tuple.Tuple3;
-import org.jooq.lambda.tuple.Tuple4;
+import org.jooq.lambda.tuple.Tuple5;
+import org.jooq.lambda.tuple.Tuple6;
 
 import org.springframework.cloud.appbroker.pipeline.output.DeployedApp;
 import org.springframework.cloud.appbroker.pipeline.output.DeployedServices;
+import org.springframework.cloud.appbroker.pipeline.output.GeneratedCredentials;
+import org.springframework.cloud.appbroker.pipeline.output.PersistResponse;
 import org.springframework.cloud.appbroker.pipeline.output.TransformedParameters;
 import org.springframework.cloud.servicebroker.model.ServiceBrokerRequest;
 
-
-public interface AppDeploymentStep<
+public interface PersistenceService<
 	T extends TransformedParameters<?>,
 	S extends DeployedServices<?>,
-	A extends DeployedApp<?>>
+	A extends DeployedApp<?>,
+	G extends GeneratedCredentials<?>,
+	P extends PersistResponse<?>>
 
 	extends Function<
-		Tuple3<ServiceBrokerRequest, T, S>,
-		Tuple4<ServiceBrokerRequest, T, S, A>> {
+		Tuple5<ServiceBrokerRequest, T, S, A, G>,
+		Tuple6<ServiceBrokerRequest, T, S, A, G, P>> {
+
 }

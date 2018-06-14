@@ -11,8 +11,8 @@ import org.springframework.cloud.appbroker.pipeline.output.DeployedServices;
 import org.springframework.cloud.appbroker.pipeline.output.TransformedParameters;
 import org.springframework.cloud.servicebroker.model.ServiceBrokerRequest;
 
-public class CloudFoundryBackingServiceInstanceCreateStep<T, S extends Serializable> implements
-	BackingServiceInstanceCreateStep<
+public class CloudFoundryBackingServiceInstanceDeployer<T, S extends Serializable> implements
+	BackingServiceInstanceDeployer<
 		TransformedParameters<?>,
 		DeployedServices<?>> {
 

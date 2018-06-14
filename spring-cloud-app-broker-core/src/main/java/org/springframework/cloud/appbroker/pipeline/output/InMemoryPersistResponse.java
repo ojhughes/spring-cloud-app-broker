@@ -1,6 +1,6 @@
 package org.springframework.cloud.appbroker.pipeline.output;
 
-public class InMemoryPersistResponse<R extends S> implements PersistResponse<R> {
+public class InMemoryPersistResponse implements PersistResponse<String> {
 
 	private String identifier;
 

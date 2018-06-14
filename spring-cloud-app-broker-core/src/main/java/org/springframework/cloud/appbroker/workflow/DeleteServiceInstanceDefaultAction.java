@@ -1,4 +1,4 @@
-package org.springframework.cloud.appbroker.action;
+package org.springframework.cloud.appbroker.workflow;
 
 import org.springframework.cloud.servicebroker.model.instance.DeleteServiceInstanceRequest;
 import org.springframework.cloud.servicebroker.model.instance.DeleteServiceInstanceResponse;

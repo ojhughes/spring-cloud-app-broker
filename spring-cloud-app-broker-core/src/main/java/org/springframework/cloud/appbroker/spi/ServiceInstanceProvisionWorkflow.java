@@ -1,11 +1,11 @@
-package org.springframework.cloud.appbroker.workflow;
+package org.springframework.cloud.appbroker.spi;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cloud.appbroker.action.CreateServiceInstanceAction;
-import org.springframework.cloud.appbroker.action.DeleteServiceInstanceAction;
-import org.springframework.cloud.appbroker.action.GetLastOperationAction;
-import org.springframework.cloud.appbroker.action.GetServiceInstanceAction;
-import org.springframework.cloud.appbroker.action.UpdateServiceInstanceAction;
+import org.springframework.cloud.appbroker.workflow.CreateServiceInstanceAction;
+import org.springframework.cloud.appbroker.workflow.DeleteServiceInstanceAction;
+import org.springframework.cloud.appbroker.workflow.GetLastOperationAction;
+import org.springframework.cloud.appbroker.workflow.GetServiceInstanceAction;
+import org.springframework.cloud.appbroker.workflow.UpdateServiceInstanceAction;
 import org.springframework.cloud.servicebroker.model.instance.CreateServiceInstanceRequest;
 import org.springframework.cloud.servicebroker.model.instance.CreateServiceInstanceResponse;
 import org.springframework.cloud.servicebroker.model.instance.DeleteServiceInstanceRequest;
