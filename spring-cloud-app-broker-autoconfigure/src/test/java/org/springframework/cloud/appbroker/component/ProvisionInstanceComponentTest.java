@@ -16,8 +16,18 @@
 
 package org.springframework.cloud.appbroker.component;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Objects;
+
 import io.restassured.http.ContentType;
 import io.specto.hoverfly.junit.core.Hoverfly;
+import io.specto.hoverfly.junit.core.HoverflyConfig;
+import io.specto.hoverfly.junit.core.HoverflyMode;
+import io.specto.hoverfly.junit.core.config.LocalHoverflyConfig;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,6 +39,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import static io.restassured.RestAssured.given;
+import static java.lang.String.format;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.springframework.cloud.appbroker.component.ProvisionInstanceComponentTest.ProvisionInstanceComponentTestConfig.SIMULATED_CF_HOST;
@@ -49,7 +60,6 @@ import static org.springframework.cloud.appbroker.component.ProvisionInstanceCom
  * {@see https://github.com/spring-cloud-incubator/spring-cloud-app-broker/issues/4}
  */
 @ExtendWith(SpringExtension.class)
-//TODO: Fix Hoverfly replaying of CF responses via a proxy
 @SpringBootTest(
 	webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
 	classes = {ProvisionInstanceComponentTest.ProvisionInstanceComponentTestConfig.class, TestApplication.class},
@@ -63,8 +73,6 @@ import static org.springframework.cloud.appbroker.component.ProvisionInstanceCom
 		// TODO not hardcode, we should be stubbing this with fake data
 		"spring.cloud.appbroker.cf.apiHost=" + SIMULATED_CF_HOST,
 		"spring.cloud.appbroker.cf.apiPort=" + SIMULATED_CF_PORT,
-//		"spring.cloud.appbroker.cf.proxyHost=http://localhost",
-//		"spring.cloud.appbroker.cf.proxyPort=" + PROXY_PORT,
 		"spring.cloud.appbroker.cf.username=admin",
 		"spring.cloud.appbroker.cf.password=adminpass",
 		"spring.cloud.appbroker.cf.defaultOrg=test",
@@ -80,12 +88,12 @@ public class ProvisionInstanceComponentTest {
 	private String localhost = "http://localhost";
 	@Value("${local.server.port}")
 	private String port;
+	private static final String spaceId = "366f90f4-dbe4-44d4-bdde-1c40c69f5274";
 
 	private static String createDefaultBody() {
 		final String serviceId = "bdb1be2e-360b-495c-8115-d7697f9c6a9e";
 		final String planId = "b973fb78-82f3-49ef-9b8b-c1876974a6cd";
 		final String orgId = "org-guid-here";
-		final String spaceId = "space-guid-here";
 		return "{\n" +
 			"  \"service_id\": \"" + serviceId + "\",\n" +
 			"  \"plan_id\": \"" + planId + "\",\n" +
@@ -94,26 +102,32 @@ public class ProvisionInstanceComponentTest {
 			"}\n";
 	}
 
-	//
-//	@BeforeAll
-//	static void setUpClass() {
-//		final HoverflyConfig hoverflyConfig = new LocalHoverflyConfig().asWebServer().proxyPort(SIMULATED_CF_PORT);
-//		hoverfly = new Hoverfly(hoverflyConfig, HoverflyMode.SIMULATE);
-//		hoverfly.start();
-//
-//		final HoverflyClient hoverflyClient = HoverflyClient
-//			.custom()
-//			.host(hoverfly
-//				.getHoverflyConfig()
-//				.getHost())
-//			.port(hoverfly
-//				.getHoverflyConfig()
-//				.getAdminPort())
-//			.scheme("http")
-//			.build();
-//		hoverflyClient.setSimulation(SimulationSource.classpath("requests.json").getSimulation());
-//		hoverflyClient.setMode(HoverflyMode.SIMULATE, new ModeArguments());
-//	}
+
+	@BeforeAll
+	static void setUpClass() throws IOException {
+		final HoverflyConfig hoverflyConfig = new LocalHoverflyConfig().asWebServer().proxyPort(SIMULATED_CF_PORT);
+		hoverfly = new Hoverfly(hoverflyConfig, HoverflyMode.SIMULATE);
+		hoverfly.start();
+
+		final String hoverflyHost = "localhost";
+		final int hoverflyAdminPort = hoverfly
+			.getHoverflyConfig()
+			.getAdminPort();
+		ClassLoader classLoader = ProvisionInstanceComponentTest.class.getClassLoader();
+		File requestsFile = new File(Objects.requireNonNull(classLoader.getResource("requests.json")).getFile());
+//		int hoverflyAdminPort = 8888;
+		given()
+//			.contentType(ContentType.JSON)
+.body(new String(Files.readAllBytes(Paths.get(requestsFile.toURI()))))
+.queryParam("tags", "")
+.put(format("http://%s:%d/api/v2/simulation", hoverflyHost, hoverflyAdminPort))
+.then()
+.statusCode(200);
+
+
+//		hoverfly.getHoverflyConfig().setWebServer(true);
+	}
+
 //	@AfterAll
 //	static void tearDownClass() {
 //		hoverfly.close();
@@ -134,11 +148,8 @@ public class ProvisionInstanceComponentTest {
 			.then()
 			.statusCode(HttpStatus.CREATED.value());
 
-
-		// deployer app object
-		// TODO assert cloudfoundry API contract for pushing our helloworld application was satisfied
 		given()
-			.get(baseCfUrl + "/v2/spaces/366f90f4-dbe4-44d4-bdde-1c40c69f5274/apps")
+			.get(baseCfUrl + "/v2/spaces/{space_guid}/apps", spaceId)
 			.then()
 			.body("resources[0].entity.name", is(equalTo("helloworldapp")))
 			.statusCode(200);
@@ -152,5 +163,3 @@ public class ProvisionInstanceComponentTest {
 
 	}
 }
-
-// -integration subproject to contain this test and the test infrastructure it depends on.
