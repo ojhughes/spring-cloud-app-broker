@@ -29,8 +29,10 @@ public class CloudFoundryProperties {
 	private Integer apiPort;
 
 	private String proxyHost;
-	
+
 	private int proxyPort;
+
+	private boolean secure = true;
 
 	private String username;
 
@@ -46,6 +48,14 @@ public class CloudFoundryProperties {
 
 	public String getApiHost() {
 		return apiHost;
+	}
+
+	public boolean isSecure() {
+		return secure;
+	}
+
+	public void setSecure(boolean secure) {
+		this.secure = secure;
 	}
 
 	public void setApiHost(String apiHost) {
@@ -132,6 +142,5 @@ public class CloudFoundryProperties {
 	public void setOperationTimeoutSeconds(int operationTimeoutSeconds) {
 		this.operationTimeoutSeconds = operationTimeoutSeconds;
 	}
-
 
 }

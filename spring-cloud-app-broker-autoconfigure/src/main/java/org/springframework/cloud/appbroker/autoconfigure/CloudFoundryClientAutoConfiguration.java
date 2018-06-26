@@ -84,6 +84,7 @@ public class CloudFoundryClientAutoConfiguration {
 									   .port(Optional.ofNullable(properties.getApiPort()))
 									   .proxyConfiguration(proxyConfiguration)
 									   .skipSslValidation(properties.isSkipSslValidation())
+									   .secure(properties.isSecure())
 									   .build();
 	}
 

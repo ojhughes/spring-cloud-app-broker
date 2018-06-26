@@ -17,8 +17,8 @@
 package org.springframework.cloud.appbroker.component;
 
 import io.restassured.http.ContentType;
+import io.specto.hoverfly.junit.core.Hoverfly;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -29,9 +29,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import static io.restassured.RestAssured.given;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.cloud.appbroker.component.ProvisionInstanceComponentTest.ProvisionInstanceComponentTestConfig.PROXY_PORT;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.springframework.cloud.appbroker.component.ProvisionInstanceComponentTest.ProvisionInstanceComponentTestConfig.SIMULATED_CF_HOST;
+import static org.springframework.cloud.appbroker.component.ProvisionInstanceComponentTest.ProvisionInstanceComponentTestConfig.SIMULATED_CF_PORT;
 
 // NB: this can't be in the core subproject. the dependency graph for subprojects is:
 //           -deployer
@@ -49,9 +50,6 @@ import static org.springframework.cloud.appbroker.component.ProvisionInstanceCom
  */
 @ExtendWith(SpringExtension.class)
 //TODO: Fix Hoverfly replaying of CF responses via a proxy
-//@ExtendWith(HoverflyExtension.class)
-//@HoverflySimulate(source = @HoverflySimulate.Source(value = "requests.json", type = HoverflySimulate.SourceType.CLASSPATH),
-//	config = @HoverflyConfig(proxyPort = PROXY_PORT, destination = SIMULATED_CF_HOST))
 @SpringBootTest(
 	webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
 	classes = {ProvisionInstanceComponentTest.ProvisionInstanceComponentTestConfig.class, TestApplication.class},
@@ -64,21 +62,25 @@ import static org.springframework.cloud.appbroker.component.ProvisionInstanceCom
 		"spring.cloud.appbroker.deploy.appName=helloworldapp",
 		// TODO not hardcode, we should be stubbing this with fake data
 		"spring.cloud.appbroker.cf.apiHost=" + SIMULATED_CF_HOST,
-		"spring.cloud.appbroker.cf.apiPort=80",
-		"spring.cloud.appbroker.cf.proxyHost=http://localhost",
-		"spring.cloud.appbroker.cf.proxyPort=" + PROXY_PORT,
+		"spring.cloud.appbroker.cf.apiPort=" + SIMULATED_CF_PORT,
+//		"spring.cloud.appbroker.cf.proxyHost=http://localhost",
+//		"spring.cloud.appbroker.cf.proxyPort=" + PROXY_PORT,
 		"spring.cloud.appbroker.cf.username=admin",
 		"spring.cloud.appbroker.cf.password=adminpass",
 		"spring.cloud.appbroker.cf.defaultOrg=test",
 		"spring.cloud.appbroker.cf.defaultSpace=development",
-		"spring.cloud.appbroker.cf.skipSslValidation=true"
+		"spring.cloud.appbroker.cf.secure=false"
 
 	})
 public class ProvisionInstanceComponentTest {
 
+	private static Hoverfly hoverfly;
+	private String baseCfUrl;
 	private String baseUrl = "";
+	private String localhost = "http://localhost";
 	@Value("${local.server.port}")
 	private String port;
+
 	private static String createDefaultBody() {
 		final String serviceId = "bdb1be2e-360b-495c-8115-d7697f9c6a9e";
 		final String planId = "b973fb78-82f3-49ef-9b8b-c1876974a6cd";
@@ -92,12 +94,36 @@ public class ProvisionInstanceComponentTest {
 			"}\n";
 	}
 
+	//
+//	@BeforeAll
+//	static void setUpClass() {
+//		final HoverflyConfig hoverflyConfig = new LocalHoverflyConfig().asWebServer().proxyPort(SIMULATED_CF_PORT);
+//		hoverfly = new Hoverfly(hoverflyConfig, HoverflyMode.SIMULATE);
+//		hoverfly.start();
+//
+//		final HoverflyClient hoverflyClient = HoverflyClient
+//			.custom()
+//			.host(hoverfly
+//				.getHoverflyConfig()
+//				.getHost())
+//			.port(hoverfly
+//				.getHoverflyConfig()
+//				.getAdminPort())
+//			.scheme("http")
+//			.build();
+//		hoverflyClient.setSimulation(SimulationSource.classpath("requests.json").getSimulation());
+//		hoverflyClient.setMode(HoverflyMode.SIMULATE, new ModeArguments());
+//	}
+//	@AfterAll
+//	static void tearDownClass() {
+//		hoverfly.close();
+//	}
 	@BeforeEach
 	void setUp() {
-		baseUrl = "http://localhost:" + port;
+		baseUrl = localhost + ":" + port;
+		baseCfUrl = localhost + ":" + SIMULATED_CF_PORT;
 	}
 
-	@Disabled
 	@Test
 	void shouldPushAppWhenCreateServiceEndpointCalled() {
 		final String instanceId = "123";
@@ -111,14 +137,18 @@ public class ProvisionInstanceComponentTest {
 
 		// deployer app object
 		// TODO assert cloudfoundry API contract for pushing our helloworld application was satisfied
-		assertThat("The CF API endpoint was called with operation").isEqualTo("push");// which is the value from the deployer
+		given()
+			.get(baseCfUrl + "/v2/spaces/366f90f4-dbe4-44d4-bdde-1c40c69f5274/apps")
+			.then()
+			.body("resources[0].entity.name", is(equalTo("helloworldapp")))
+			.statusCode(200);
 	}
 
 	@Configuration
 	static class ProvisionInstanceComponentTestConfig {
 
-		final static int PROXY_PORT = 8500;
-		final static String SIMULATED_CF_HOST = "http://api.cf.fakecf.com";
+		final static String SIMULATED_CF_HOST = "http://localhost";
+		final static int SIMULATED_CF_PORT = 8500;
 
 	}
 }
