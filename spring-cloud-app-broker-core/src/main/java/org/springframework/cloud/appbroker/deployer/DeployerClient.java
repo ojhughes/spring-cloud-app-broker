@@ -20,16 +20,18 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.Logger;
+import reactor.util.Loggers;
 
+import org.springframework.cloud.deployer.spi.app.DeploymentState;
 import org.springframework.cloud.deployer.spi.core.AppDefinition;
 import org.springframework.cloud.deployer.spi.core.AppDeploymentRequest;
 import org.springframework.context.ResourceLoaderAware;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.util.StringUtils;
-import reactor.util.Logger;
-import reactor.util.Loggers;
 
 public class DeployerClient implements ResourceLoaderAware {
 
@@ -54,15 +56,21 @@ public class DeployerClient implements ResourceLoaderAware {
 		this.resourceLoader = resourceLoader;
 	}
 
+	Flux<DeploymentState> deployAndGetStatus(BackingApplication backingApplication) {
+		return appDeployer.deployAndGetStatus(createAppDeploymentRequest(backingApplication))
+			.doOnRequest(l -> log.info("Deploying application {}", backingApplication.getName()))
+			.doOnError(e -> log.info("Error deploying application {} with error {}", backingApplication.getName(), e));
+	}
+
 	Mono<String> deploy(BackingApplication backingApplication) {
 		return appDeployer.deploy(createAppDeploymentRequest(backingApplication))
-			.doOnRequest(l -> log.info("Deploying application {}", backingApplication.getName()))
-			.doOnSuccess(d -> log.info("Finished deploying application {}", backingApplication.getName()))
-			.doOnError(e -> log.info("Error deploying application {} with error {}", backingApplication.getName(), e))
-			.then(Mono.just("running"))
-			.doOnRequest(l -> log.info("Mocking return from deploying application {}", backingApplication.getName()))
-			.doOnSuccess(d -> log.info("Finished mocking return from deploying application {}", backingApplication.getName()))
-			.doOnError(e -> log.info("Error when returning from deploying application {} with error {}", backingApplication.getName(), e));
+						  .doOnRequest(l -> log.info("Deploying application {}", backingApplication.getName()))
+						  .doOnSuccess(d -> log.info("Finished deploying application {}", backingApplication.getName()))
+						  .doOnError(e -> log.info("Error deploying application {} with error {}", backingApplication.getName(), e))
+						  .then(Mono.just("running"))
+						  .doOnRequest(l -> log.info("Mocking return from deploying application {}", backingApplication.getName()))
+						  .doOnSuccess(d -> log.info("Finished mocking return from deploying application {}", backingApplication.getName()))
+						  .doOnError(e -> log.info("Error when returning from deploying application {} with error {}", backingApplication.getName(), e));
 	}
 
 	Mono<String> undeploy(BackingApplication backingApplication) {

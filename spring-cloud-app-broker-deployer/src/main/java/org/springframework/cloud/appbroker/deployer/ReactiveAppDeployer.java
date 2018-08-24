@@ -16,10 +16,13 @@
 
 package org.springframework.cloud.appbroker.deployer;
 
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
 import org.springframework.cloud.deployer.spi.app.AppStatus;
+import org.springframework.cloud.deployer.spi.app.DeploymentState;
 import org.springframework.cloud.deployer.spi.core.AppDeploymentRequest;
 import org.springframework.cloud.deployer.spi.core.RuntimeEnvironmentInfo;
-import reactor.core.publisher.Mono;
 
 public interface ReactiveAppDeployer {
 	/**
@@ -36,6 +39,21 @@ public interface ReactiveAppDeployer {
 	 * @throws IllegalStateException if the app has already been deployed
 	 */
 	Mono<String> deploy(AppDeploymentRequest request);
+
+	/**
+	 * Deploy an app using an {@link AppDeploymentRequest}. The returned id is
+	 * later used with {@link #undeploy(String)} or {@link #status(String)} to
+	 * undeploy an app or check its status, respectively.
+	 * <p>
+	 * Implementations may perform this operation asynchronously; therefore a
+	 * successful deployment may not be assumed upon return. To determine the
+	 * status of a deployment, invoke {@link #status(String)}.
+	 *
+	 * @param request the app deployment request
+	 * @return the deployment id for the app
+	 * @throws IllegalStateException if the app has already been deployed
+	 */
+	Flux<DeploymentState> deployAndGetStatus(AppDeploymentRequest request);
 
 	/**
 	 * Un-deploy an app using its deployment id. Implementations may perform
@@ -61,4 +79,6 @@ public interface ReactiveAppDeployer {
 	 * @return the runtime environment info
 	 */
 	RuntimeEnvironmentInfo environmentInfo();
+
+
 }

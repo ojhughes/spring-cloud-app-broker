@@ -16,6 +16,15 @@
 
 package org.springframework.cloud.appbroker.deployer.cloudfoundry;
 
+import java.time.Duration;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.cloudfoundry.operations.CloudFoundryOperations;
@@ -31,6 +40,10 @@ import org.cloudfoundry.operations.applications.PushApplicationManifestRequest;
 import org.cloudfoundry.operations.applications.Route;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.yaml.snakeyaml.Yaml;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
 import org.springframework.cloud.appbroker.deployer.ReactiveAppDeployer;
 import org.springframework.cloud.deployer.spi.app.AppDeployer;
 import org.springframework.cloud.deployer.spi.app.AppStatus;
@@ -41,18 +54,6 @@ import org.springframework.cloud.deployer.spi.cloudfoundry.CloudFoundryDeploymen
 import org.springframework.cloud.deployer.spi.core.AppDeploymentRequest;
 import org.springframework.cloud.deployer.spi.core.RuntimeEnvironmentInfo;
 import org.springframework.util.StringUtils;
-import org.yaml.snakeyaml.Yaml;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
-import java.time.Duration;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import static org.springframework.cloud.deployer.spi.cloudfoundry.CloudFoundryDeploymentProperties.DOMAIN_PROPERTY;
 import static org.springframework.cloud.deployer.spi.cloudfoundry.CloudFoundryDeploymentProperties.HEALTHCHECK_HTTP_ENDPOINT_PROPERTY_KEY;
@@ -85,6 +86,31 @@ public class CloudFoundryReactiveAppDeployer extends AbstractCloudFoundryReactiv
 	}
 
 	@Override
+	public Flux<DeploymentState> deployAndGetStatus(AppDeploymentRequest request) {
+		logger.trace("Entered deploy: Deploying AppDeploymentRequest: AppDefinition = {}, Resource = {}, Deployment Properties = {}",
+				request.getDefinition(), request.getResource(), request.getDeploymentProperties());
+		String deploymentId = deploymentId(request);
+
+		logger.trace("deploy: Pushing application");
+		return pushApplication(deploymentId, request)
+			.timeout(Duration.ofSeconds(this.deploymentProperties.getApiTimeout()))
+			.doOnError(error -> {
+				if (isNotFoundError().test(error)) {
+					logger.warn("Unable to deploy application. It may have been destroyed before start completed: " + error.getMessage());
+				}
+				else {
+					logError(String.format("Failed to deploy %s", deploymentId)).accept(error);
+				}
+			})
+			.then(getStatus(deploymentId))
+			.repeat()
+			.map(AppStatus::getState)
+			.distinctUntilChanged()
+			.takeUntil(pred -> pred.equals(DeploymentState.deployed))
+			.log();
+	}
+
+	@Override
 	public Mono<String> deploy(AppDeploymentRequest request) {
 		logger.trace("Entered deploy: Deploying AppDeploymentRequest: AppDefinition = {}, Resource = {}, Deployment Properties = {}",
 				request.getDefinition(), request.getResource(), request.getDeploymentProperties());
@@ -92,17 +118,16 @@ public class CloudFoundryReactiveAppDeployer extends AbstractCloudFoundryReactiv
 
 		logger.trace("deploy: Pushing application");
 		return pushApplication(deploymentId, request)
-				.timeout(Duration.ofSeconds(this.deploymentProperties.getApiTimeout()))
-				.doOnSuccess(item -> logger.info("Successfully deployed {}", deploymentId))
-				.doOnError(error -> {
-					if (isNotFoundError().test(error)) {
-						logger.warn("Unable to deploy application. It may have been destroyed before start completed: " + error.getMessage());
-					}
-					else {
-						logError(String.format("Failed to deploy %s", deploymentId)).accept(error);
-					}
-				})
-				.then(Mono.just(deploymentId));
+			.timeout(Duration.ofSeconds(this.deploymentProperties.getApiTimeout()))
+			.doOnError(error -> {
+				if (isNotFoundError().test(error)) {
+					logger.warn("Unable to deploy application. It may have been destroyed before start completed: " + error.getMessage());
+				}
+				else {
+					logError(String.format("Failed to deploy %s", deploymentId)).accept(error);
+				}
+			})
+			.then(Mono.just(deploymentId));
 	}
 
 	private Mono<Void> pushApplication(String deploymentId, AppDeploymentRequest request) {
