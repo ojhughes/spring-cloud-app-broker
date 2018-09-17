@@ -43,6 +43,19 @@ Install Google Cloud SDK, see https://cloud.google.com/sdk/docs/quickstart-macos
 EOF
 }
 
+usage() {
+    cat <<- EOF
+./manage-bosh-bbl-env.sh
+	create-new-environment -e -l -b "env-suffix"  -i "internal cidr"
+		-e Flag to upload environment variables to CircleCI
+		-l Flag to upload environment variables to team Lastpass
+		-i CIDR range for internal network of Jumpbox and BOSH director (must not have already been used in GCP project) eg 10.0.1.0/24
+		-b Alias for new BBL environment that will be used for creating dns entry. Convention is an English town name, see https://en.wikipedia.org/wiki/List_of_towns_in_England
+	generate-bbl-state-directory -b "env-suffix"
+		-b Alias for existing BBL environment that will be used for creating dns entry.
+EOF
+}
+
 has_ip_cidr_already_been_used(){
 	echo "${GCP_KEY_BASE64}" | base64 -d > "${CI_DIR}/gcp-key.json"
 	gcloud auth activate-service-account --key-file="${BBL_GCP_SERVICE_ACCOUNT_KEY}"
