@@ -157,12 +157,13 @@ base64_encode_bbl_state(){
         ["BBL_${bbl_env_suffix_upper}_JUMPBOX_VARS_STORE_YML"]="${bbl_state_dir}/vars/jumpbox-vars-store.yml"
         ["BBL_${bbl_env_suffix_upper}_TERRAFORM_TFSTATE"]="${bbl_state_dir}/vars/terraform.tfstate"
     )
-    #Ensure .envrc files are empty before writing them to avoid duplicates
-#    > "$(get_bbl_state_dir "${bbl_env_suffix}")/.envrc"
-#    > "$(get_bbl_state_dir "${bbl_env_suffix}")/.envrc-local"
     for var_name in "${!bbl_state_file_paths[@]}"; do
     	local base64_file_contents=$(base64 -w0 "${bbl_state_file_paths[${var_name}]}")
-        printf "export ${var_name}=${base64_file_contents}\n" | tee -a "$(get_bbl_state_dir "${bbl_env_suffix}")/.envrc" "$(get_bbl_state_dir "${bbl_env_suffix}")/.envrc-local"
+    	#Delete previous variable in .envrc file then replace with new value
+    	sed -i "/export ${var_name}=/d" "${CI_DIR}/.envrc"
+    	sed -i "/export ${var_name}=/d" "${CI_DIR}/.envrc-local"
+        printf "export ${var_name}=${base64_file_contents}\n" | tee -a "$(get_bbl_state_dir "${bbl_env_suffix}")/.envrc" \
+         	"$(get_bbl_state_dir "${bbl_env_suffix}")/.envrc-local"
         if [ "${upload_env_vars_to_circle}" = true ]; then
         	upload_environment_variables_to_circleci "${var_name}" "${base64_file_contents}"
         fi
@@ -188,9 +189,10 @@ base64_decode_bbl_state(){
         ["BBL_${bbl_env_suffix_upper}_JUMPBOX_VARS_STORE_YML"]="${bbl_state_dir}/vars/jumpbox-vars-store.yml"
         ["BBL_${bbl_env_suffix_upper}_TERRAFORM_TFSTATE"]="${bbl_state_dir}/vars/terraform.tfstate"
     )
+    mkdir -p "${bbl_state_dir}/vars/"
 	for var_name in "${!bbl_state_file_paths[@]}"; do
-    	local decoded_file_contents=$(echo $"${var_name}" | base64 -d)
-        printf "${decoded_file_contents}" > "${bbl_state_dir}/${bbl_state_file_paths[${var_name}]}"
+    	local decoded_file_contents=$(eval echo "\$${var_name}" | base64 -d)
+        echo "${decoded_file_contents}" > "${bbl_state_file_paths[${var_name}]}"
     done
 }
 
@@ -227,16 +229,16 @@ generate_bbl_state_dir_for_environment(){
 
 create_new_bbl_bosh_environment(){
 	local -r bbl_env_suffix="${1}" internal_network_cidr="${2}" upload_env_vars_to_circleci="${3}" upload_env_vars_to_lastpass="{$4}"
-#	validate "${internal_network_cidr}"
-#	create_bbl_state_dir "${bbl_env_suffix}"
-#	create_new_bbl_plan "${bbl_env_suffix}"
-#	copy_plan_patch_files "${bbl_env_suffix}"
-#	interpolate_terraform_template_file "${internal_network_cidr}" "${bbl_env_suffix}"
-#	create_director_and_jumpbox "${internal_network_cidr}" "${bbl_env_suffix}"
-#	source_bbl_environment "${bbl_env_suffix}"
-#	clone_cf_deployment "${bbl_env_suffix}"
-#	deploy_cf "${bbl_env_suffix}"
-#	update_dns "${bbl_env_suffix}"
+	validate "${internal_network_cidr}"
+	create_bbl_state_dir "${bbl_env_suffix}"
+	create_new_bbl_plan "${bbl_env_suffix}"
+	copy_plan_patch_files "${bbl_env_suffix}"
+	interpolate_terraform_template_file "${internal_network_cidr}" "${bbl_env_suffix}"
+	create_director_and_jumpbox "${internal_network_cidr}" "${bbl_env_suffix}"
+	source_bbl_environment "${bbl_env_suffix}"
+	clone_cf_deployment "${bbl_env_suffix}"
+	deploy_cf "${bbl_env_suffix}"
+	update_dns "${bbl_env_suffix}"
 	base64_encode_bbl_state	"${bbl_env_suffix}" "${upload_env_vars_to_circleci}" "${upload_env_vars_to_lastpass}"
 }
 
@@ -309,8 +311,6 @@ process_command(){
 			printf "${arg}: Unknown command"
 			;;
     esac
-
-
 }
 
 [[ $# -lt 1 ]] && printf "Not enough arguments\n\n" && usage && exit 1
