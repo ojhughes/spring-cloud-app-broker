@@ -17,4 +17,5 @@ bosh delete-env \
   -o  ${BBL_STATE_DIR}/external-ip-gcp.yml \
   -o  ${BBL_STATE_DIR}/ip-forwarding.yml \
   -o  ${BBL_STATE_DIR}/bosh-lite-vm-type-small.yml \
-  -o  ${BBL_STATE_DIR}/disable-resurrector.yml
+  -o  ${BBL_STATE_DIR}/disable-resurrector.yml \
+  -o  ${BBL_STATE_DIR}/bosh-lite-disk.yml

@@ -11,6 +11,7 @@ bosh_create_env_command+=(
  ${BBL_STATE_DIR}/vars/director-vars-store.yml
  --vars-file
  ${BBL_STATE_DIR}/vars/director-vars-file.yml
+ --var-file
  gcp_credentials_json="${BBL_GCP_SERVICE_ACCOUNT_KEY_PATH}"
  -v
  project_id="${BBL_GCP_PROJECT_ID}"
@@ -38,6 +39,8 @@ bosh_create_env_command+=(
  ${BBL_STATE_DIR}/bosh-lite-vm-type-small.yml
  -o
  ${BBL_STATE_DIR}/disable-resurrector.yml
+ -o
+ ${BBL_STATE_DIR}/bosh-lite-disk.yml
 )
 
 if [[ ! -z "${JUMPBOX_INTERNAL_CIDR:-}" && ! -z "${JUMPBOX_INTERNAL_IP:-}" ]]; then

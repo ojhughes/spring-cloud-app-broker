@@ -98,7 +98,7 @@ jobs:
 
     - run:
         name: BOSH Cleanup
-        command: bosh clean-up --all
+        command: bosh -n clean-up --all
 
     - store_test_results:
         path: ~/repo/spring-cloud-app-broker-acceptance-tests/build/test-results
