@@ -24,21 +24,17 @@ jobs:
     - run:
         name: "Populate Secrets from Environment"
         command: |
+          cd ~/repo/ci/
           if [[ ${CIRCLE_BUILD_NUM} = "" ]]; then
               echo "populating from .envrc"
-              [[ -f "ci/.envrc-local" ]] || (printf "Download .envrc-local from LastPass using \"lpass show --notes 5798335231099672425\" in directory ${CI_DIR} before running script"; exit 1)
-              cd ~/repo/ci/
+              [[ -f "ci/.envrc-localci" ]] || (printf "Download .envrc-local from LastPass using \"lpass show --notes 5798335231099672425\" in directory ${CI_DIR} before running script"; exit 1)
               cat .envrc-local >> $BASH_ENV
-              ./scripts/populate-secrets-from-environment.sh
-              ./scripts/fix-bbl-state-json-line-breaks.py
-              cd bbl-bosh-lite-environment/bbl-state
-              bbl print-env >> $BASH_ENV
+              ./scripts/manage-bosh-bbl-environment.sh generate-bbl-state-directory -b "${ACTIVE_BBL_ENV_LOCAL}"
+              bbl -s "bosh-env-${ACTIVE_BBL_ENV_CIRCLE}/bbl-state" print-env >> $BASH_ENV
           else
               echo "populating from bbl env"
-              cd ~/repo/ci/scripts
-              ./populate-secrets-from-environment.sh
-              cd ~/repo/ci/bbl-bosh-lite-environment/bbl-state
-              bbl print-env >> $BASH_ENV
+              ./scripts/manage-bosh-bbl-environment.sh generate-bbl-state-directory -b "${ACTIVE_BBL_ENV_CIRCLE}"
+              bbl -s "bosh-env-${ACTIVE_BBL_ENV_CIRCLE}/bbl-state" print-env >> $BASH_ENV
           fi
 
     - run:
@@ -97,7 +93,7 @@ jobs:
           ./gradlew clean assemble check -PacceptanceTests --stacktrace --continue -b spring-cloud-app-broker-acceptance-tests/build.gradle
 
     - run:
-        name: BOSH Cleanup
+        name: "BOSH Cleanup"
         command: bosh -n clean-up --all
 
     - store_test_results:
