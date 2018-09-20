@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euox pipefail
+set -euo pipefail
 readonly SCRIPT_DIR=$(readlink -m $(dirname $0))
 readonly CI_DIR=$(dirname "${SCRIPT_DIR}")
 readonly BBL_VERSION=v6.9.16
@@ -17,6 +17,8 @@ validate(){
 	[[ $(type gcloud) ]] || (echo "gcloud tool not installed" >&2 ; gcloud_usage ; exit 2)
 	[[ $(type bosh) ]] || (echo "bosh cli not installed" >&2 ; bosh_usage ; exit 2)
 	[[ $(type credhub) ]] || (echo "credhub cli not installed" >&2 ; credhub_usage ; exit 2)
+	[[ $(type lpass) ]] || (echo "lastpass-cli not installed (get with brew install lastpass-cli)" >&2 ; exit 2)
+	[[ $(type aws) ]] || (echo "aws-cli tool not installed, Install using \"brew install aws-cli\"" >&2 ; exit 2)
 
 	has_ip_cidr_already_been_used "${internal_cidr}"
 	is_ip_cidr_valid "${internal_cidr}"
@@ -82,8 +84,8 @@ has_ip_cidr_already_been_used(){
 	echo "${GCP_KEY_BASE64}" | base64 -d > "${CI_DIR}/gcp-key.json"
 	gcloud auth activate-service-account --key-file="${BBL_GCP_SERVICE_ACCOUNT_KEY}"
 	gcloud config set project "${BBL_GCP_PROJECT_ID}"
-	$(gcloud compute networks subnets list --filter="name :(appbroker*)" --format=json \
-	| jq -e --arg IP_CIDR "${internal_cidr}" '. | map(.ipCidrRange) | index($IP_CIDR) | not')
+	gcloud compute networks subnets list --filter="name :(appbroker*)" --format=json \
+	| jq -e --arg IP_CIDR "${internal_cidr}" '. | map(.ipCidrRange) | index($IP_CIDR) | not'
 }
 
 is_ip_cidr_valid(){
@@ -113,7 +115,11 @@ create_bbl_state_dir() {
 
 create_new_bbl_plan() {
 	local -r bbl_env_suffix="${1}"
-	bbl plan --name "${bbl_env_suffix}" -s $(get_bbl_state_dir "${bbl_env_suffix}") --gcp-service-account-key="${CI_DIR}/gcp-key.json"
+	local -r bbl_state_dir=$(get_bbl_state_dir "${bbl_env_suffix}")
+	local -r bbl_env_name="${bbl_env_suffix}"
+
+	#This is just to get the plan files in place, BBL will complain the env already exists but this can be ignored
+	bbl plan --name "${bbl_env_suffix}" -s "${bbl_state_dir}" --gcp-service-account-key="${CI_DIR}/gcp-key.json" || true
 }
 
 copy_plan_patch_files() {
@@ -162,7 +168,7 @@ update_dns(){
 
 base64_encode_bbl_state(){
 
-	local -r bbl_env_suffix="${1}" upload_env_vars_to_circle="${2}" upload_env_vars_to_lastpass="${3}" internal_cidr="${4}"
+	local -r bbl_env_suffix="${1}" internal_cidr="${2}" upload_env_vars_to_circle="${3}" upload_env_vars_to_lastpass="${4}"
 	local -r bbl_env_suffix_upper="${bbl_env_suffix^^}"
 	local -r bbl_state_dir=$(get_bbl_state_dir "${bbl_env_suffix}")
 
@@ -178,21 +184,27 @@ base64_encode_bbl_state(){
         ["BBL_${bbl_env_suffix_upper}_JUMPBOX_VARS_STORE_YML"]="${bbl_state_dir}/vars/jumpbox-vars-store.yml"
         ["BBL_${bbl_env_suffix_upper}_TERRAFORM_TFSTATE"]="${bbl_state_dir}/vars/terraform.tfstate"
     )
-	[[ -f "${CI_DIR}/.envrc-localci" ]] || (printf "Download .envrc-local from LastPass using \"lpass show --notes ${LASTPASS_LOCALCI_CREDS_NOTE_ID}\" in directory ${CI_DIR} before running script"; exit 1)
+	[[ -f "${CI_DIR}/.envrc-localci" ]] || (printf "Download .envrc-localci from LastPass using \"lpass show --notes ${LASTPASS_LOCALCI_CREDS_NOTE_ID}\" in directory ${CI_DIR} before running script"; exit 1)
     update_internal_network_environment_variable "${bbl_env_suffix}" "${upload_env_vars_to_circle}" "${internal_cidr}"
 
     for var_name in "${!bbl_state_file_paths[@]}"; do
     	local base64_file_contents=$(base64 -w0 "${bbl_state_file_paths[${var_name}]}")
-    	#Delete previous variable in .envrc file then replace with new value
-    	sed -i "/export ${var_name}=/d" "${CI_DIR}/.envrc-localci"
+		if [[ ! -z "${base64_file_contents}" ]]; then
+		#Delete previous variable in .envrc file then replace with new value
+			sed -i -e "/export ${var_name}=/d" "${CI_DIR}/.envrc-localci"
 
-    	#Create a .envrc also in the bbl-state directory so the environment can be easily targeted manually
-    	#.envrc-localci is used by the local circleci runner
-        printf "export ${var_name}=\"${base64_file_contents}\"\n" >> "${CI_DIR}/.envrc-localci"
-        if [ "${upload_env_vars_to_circle}" = true ]; then
-        	upload_environment_variables_to_circleci "${var_name}" "${base64_file_contents}"
-        fi
+			#Create a .envrc also in the bbl-state directory so the environment can be easily targeted manually
+			#.envrc-localci is used by the local circleci runner
+			printf "export ${var_name}=\"${base64_file_contents}\"\n" >> "${CI_DIR}/.envrc-localci"
+			if [ "${upload_env_vars_to_circle}" = true ]; then
+				upload_environment_variables_to_circleci "${var_name}" "${base64_file_contents}"
+			fi
+		else
+			echo "${var_name} was empty, unable to decode variables"
+			exit 1
+    	fi
     done
+    echo "${upload_env_vars_to_lastpass}"
     if [ "${upload_env_vars_to_lastpass}" = true ]; then
 		upload_environment_variables_in_lastpass
 	fi
@@ -217,7 +229,12 @@ base64_decode_bbl_state(){
     mkdir -p "${bbl_state_dir}/vars/"
 	for var_name in "${!bbl_state_file_paths[@]}"; do
     	local decoded_file_contents=$(eval echo "\$${var_name}" | base64 -d)
-        echo "${decoded_file_contents}" > "${bbl_state_file_paths[${var_name}]}"
+    	if [[ ! -z "${decoded_file_contents}" ]]; then
+        	echo "${decoded_file_contents}" > "${bbl_state_file_paths[${var_name}]}"
+		else
+			echo "${var_name} was empty, unable to decode variables"
+			exit 1
+		fi
     done
 }
 
@@ -240,7 +257,7 @@ update_internal_network_environment_variable(){
 	local -r bbl_state_dir=$(get_bbl_state_dir "${bbl_env_suffix}")
 	local -r internal_network_var_name="BBL_${bbl_env_suffix^^}_INTERNAL_NETWORK_CIDR"
 
-	sed -i "/export ${internal_network_var_name}=/d" "${CI_DIR}/.envrc-localci"
+	sed -i -e "/export ${internal_network_var_name}=/d" "${CI_DIR}/.envrc-localci"
 	printf "export ${internal_network_var_name}=${internal_cidr}\n" >> "${CI_DIR}/.envrc-localci"
 	if [ "${upload_env_vars_to_circle}" = true ]; then
 		upload_environment_variables_to_circleci "${internal_network_var_name}" "${internal_cidr}"
@@ -253,9 +270,15 @@ update_variables_to_target_active_environment(){
 	local -r api_host_var_name="SPRING_CLOUD_APPBROKER_ACCEPTANCETEST_CLOUDFOUNDRY_API_HOST"
 	local -r cf_password_var_name="SPRING_CLOUD_APPBROKER_ACCEPTANCETEST_CLOUDFOUNDRY_PASSWORD"
 	local -r envrc_file="${CI_DIR}/.envrc-localci"
-	local -r cf_password=$(credhub get -n "/bosh-appbroker-${bbl_env_suffix}/cf/cf_admin_password" -j | jq -r '.value')
-	local -r api_host="api.appbroker-${bbl_env_suffix}.cf-app.com"
 
+	source_bbl_environment "${bbl_env_suffix}"
+	local -r bbl_env_id=$(bbl -s "${bbl_state_dir}" env-id)
+	local -r cf_password=$(credhub get -n "/bosh-${bbl_env_id}/cf/cf_admin_password" -j | jq -r '.value')
+	local -r api_host="api.appbroker-${bbl_env_suffix}.cf-app.com"
+	if [[ -z "${cf_password}" ]]; then
+		echo "Error: unable to find cf password"
+		exit 1
+	fi
 	if [[ "$ci_target" != "local" && "$ci_target" != "circleci" ]]; then
 		printf "-t option must equal local or circleci" 1>&2
 		exit 1
@@ -265,20 +288,20 @@ update_variables_to_target_active_environment(){
 		upload_environment_variables_to_circleci "${api_host_var_name}" "${cf_password}"
 		upload_environment_variables_to_circleci "ACTIVE_BBL_ENV_CIRCLE" "${bbl_env_suffix}"
 		sed -i "/export ACTIVE_BBL_ENV_CIRCLE=/d" "${envrc_file}"
-		printf "export ACTIVE_BBL_ENV_CIRCLE=${bbl_env_suffix}" > "${envrc_file}"
+		printf "export ACTIVE_BBL_ENV_CIRCLE=${bbl_env_suffix}\\n" >> "${envrc_file}"
 
 	fi
 	if [ "$ci_target" = "local" ]; then
-		sed -i "/export ACTIVE_BBL_ENV_LOCAL=/d" "${envrc_file}"
-		printf "export ACTIVE_BBL_ENV_LOCAL=${bbl_env_suffix}" > "${envrc_file}"
+		sed -i -e "/export ACTIVE_BBL_ENV_LOCAL=/d" "${envrc_file}"
+		printf "export ACTIVE_BBL_ENV_LOCAL=${bbl_env_suffix}\\n" >> "${envrc_file}"
 	fi
 
 	#Remove existing values from .envrc
-	sed -i "/export ${api_host_var_name}=/d" "${envrc_file}"
-	sed -i "/export ${cf_password_var_name}=/d" "${envrc_file}"
+	sed -i -e "/export ${api_host_var_name}=/d" "${envrc_file}"
+	sed -i -e "/export ${cf_password_var_name}=/d" "${envrc_file}"
 
-	printf "export ${api_host_var_name}=${api_host}" > "${envrc_file}"
-	printf "export ${cf_password_var_name}=${cf_password}\n" > "${envrc_file}"
+	printf "export ${api_host_var_name}=${api_host}\\n" >> "${envrc_file}"
+	printf "export ${cf_password_var_name}=${cf_password}\\n" >> "${envrc_file}"
 	upload_environment_variables_in_lastpass
 }
 
@@ -303,32 +326,35 @@ get_bbl_env_name(){
 
 generate_bbl_state_dir_for_environment(){
 	local -r bbl_env_suffix="${1}"
-	declare -Ar bbl_env_scoped_variables=(["${bbl_env_suffix}"]="BBL_${bbl_env_suffix^^}_INTERNAL_NETWORK_CIDR")
 	if [[ -z "${CIRCLE_BUILD_NUM:-}" ]] ; then
-		[[ -f "${CI_DIR}/.envrc-localci" ]] || (printf "Download .envrc-local from LastPass using \"lpass show --notes ${LASTPASS_LOCALCI_CREDS_NOTE_ID}\" in directory ${CI_DIR} before running script"; exit 1)
+		[[ -f "${CI_DIR}/.envrc-localci" ]] || (printf "Download .envrc-localci from LastPass using \"lpass show --notes ${LASTPASS_LOCALCI_CREDS_NOTE_ID}\" in directory ${CI_DIR} before running script"; exit 1)
 		source "${CI_DIR}/.envrc-localci"
 	fi
-
+	local -r bbl_suffix_upper=${bbl_env_suffix^^}
+	local -r internal_network_var_name="BBL_${bbl_suffix_upper}_INTERNAL_NETWORK_CIDR"
+	local -r internal_cidr=$(eval echo "\$${internal_network_var_name}")
 	create_bbl_state_dir "${bbl_env_suffix}"
 	create_new_bbl_plan "${bbl_env_suffix}"
 	copy_plan_patch_files "${bbl_env_suffix}"
-	interpolate_terraform_template_file ${bbl_env_scoped_variables[${bbl_env_suffix}]} "${bbl_env_suffix}"
+	interpolate_terraform_template_file "${internal_cidr}" "${bbl_env_suffix}"
 	base64_decode_bbl_state "${bbl_env_suffix}"
+	echo "Finished creating generating BBL state directory for $(get_bbl_env_name ${bbl_env_suffix})"
 }
 
 create_new_bbl_bosh_environment(){
-	local -r bbl_env_suffix="${1}" internal_network_cidr="${2}" upload_env_vars_to_circleci="${3}" upload_env_vars_to_lastpass="{$4}"
-#	validate "${internal_network_cidr}"
-#	create_bbl_state_dir "${bbl_env_suffix}"
-#	create_new_bbl_plan "${bbl_env_suffix}"
-#	copy_plan_patch_files "${bbl_env_suffix}"
-#	interpolate_terraform_template_file "${internal_network_cidr}" "${bbl_env_suffix}"
-#	create_director_and_jumpbox "${internal_network_cidr}" "${bbl_env_suffix}"
-#	source_bbl_environment "${bbl_env_suffix}"
-#	clone_cf_deployment "${bbl_env_suffix}"
-#	deploy_cf "${bbl_env_suffix}"
-#	update_dns "${bbl_env_suffix}"
-	base64_encode_bbl_state	"${bbl_env_suffix}" "${upload_env_vars_to_circleci}" "${upload_env_vars_to_lastpass}" "${internal_network_cidr}"
+	local -r bbl_env_suffix="${1}" internal_network_cidr="${2}" upload_env_vars_to_circleci="${3}" upload_env_vars_to_lastpass="${4}"
+	validate "${internal_network_cidr}"
+	create_bbl_state_dir "${bbl_env_suffix}"
+	create_new_bbl_plan "${bbl_env_suffix}"
+	copy_plan_patch_files "${bbl_env_suffix}"
+	interpolate_terraform_template_file "${internal_network_cidr}" "${bbl_env_suffix}"
+	create_director_and_jumpbox "${internal_network_cidr}" "${bbl_env_suffix}"
+	source_bbl_environment "${bbl_env_suffix}"
+	clone_cf_deployment "${bbl_env_suffix}"
+	deploy_cf "${bbl_env_suffix}"
+	update_dns "${bbl_env_suffix}"
+	base64_encode_bbl_state	"${bbl_env_suffix}" "${internal_network_cidr}" "${upload_env_vars_to_circleci}" "${upload_env_vars_to_lastpass}"
+	echo "Finished creating cloud foundry environment, you can now target CF using 'cf api api.$(get_bbl_env_name ${bbl_env_suffix}).cf-app.com --skip-ssl-validation'"
 }
 
 process_command(){

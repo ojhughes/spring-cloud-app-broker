@@ -27,10 +27,11 @@ jobs:
           cd ~/repo/ci/
           if [[ ${CIRCLE_BUILD_NUM} = "" ]]; then
               echo "populating from .envrc"
-              [[ -f "ci/.envrc-localci" ]] || (printf "Download .envrc-local from LastPass using \"lpass show --notes 5798335231099672425\" in directory ${CI_DIR} before running script"; exit 1)
-              cat .envrc-local >> $BASH_ENV
+              [[ -f ".envrc-localci" ]] || (printf "Download .envrc-local from LastPass using \"lpass show --notes 5798335231099672425\" in directory ${CI_DIR} before running script"; exit 1)
+              cat .envrc-localci >> $BASH_ENV
+              source .envrc-localci
               ./scripts/manage-bosh-bbl-environment.sh generate-bbl-state-directory -b "${ACTIVE_BBL_ENV_LOCAL}"
-              bbl -s "bosh-env-${ACTIVE_BBL_ENV_CIRCLE}/bbl-state" print-env >> $BASH_ENV
+              bbl -s "bosh-env-${ACTIVE_BBL_ENV_LOCAL}/bbl-state" print-env >> $BASH_ENV
           else
               echo "populating from bbl env"
               ./scripts/manage-bosh-bbl-environment.sh generate-bbl-state-directory -b "${ACTIVE_BBL_ENV_CIRCLE}"

@@ -20,3 +20,4 @@ director-vars-file.yml
 bbl-env.sh
 bbl-env-creds.sh
 bosh-env-*/
+*key.json
